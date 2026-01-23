@@ -1,6 +1,6 @@
 import WalkingBooking from './_components';
 
-const WalkingBookingPage = () => {
+const SalonDetailsPage = () => {
   return (
     <div>
       <WalkingBooking />
@@ -8,4 +8,4 @@ const WalkingBookingPage = () => {
   );
 };
 
-export default WalkingBookingPage;
+export default SalonDetailsPage;

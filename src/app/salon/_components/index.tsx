@@ -1,11 +1,13 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import Spinner from '@/src/components/Spinner';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StarRatings from 'react-star-ratings';
 
-const WalkingBooking = () => {
+const SalonDetails = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const qrToken = searchParams.get('qrToken');
 
   const [data, setData] = useState<any>(null);
@@ -14,7 +16,7 @@ const WalkingBooking = () => {
   useEffect(() => {
     if (!qrToken) return;
 
-    fetch(`http://10.10.10.73:5001/api/v1/qr-code/walk-in/${qrToken}`)
+    fetch(`http://10.10.10.73:5001/api/v1/qr-code/salon/${qrToken}`)
       .then((res) => res.json())
       .then((res) => {
         setData(res.data);
@@ -23,16 +25,13 @@ const WalkingBooking = () => {
       .catch(() => setLoading(false));
   }, [qrToken]);
 
-  if (loading)
-    return (
-      <p className="text-center mt-20 text-gray-500">
-        Loading salon details...
-      </p>
-    );
-  if (!data)
-    return <p className="text-center mt-20 text-red-500">Invalid QR Code</p>;
+  if (loading) {
+    return <Spinner />;
+  }
 
-  console.log(data);
+  if (!data) {
+    return <p className="text-center mt-20 text-red-500">Invalid QR Code</p>;
+  }
 
   return (
     <div className="max-w-3xl mx-auto my-10 p-8 bg-white shadow-md rounded-lg">
@@ -123,6 +122,27 @@ const WalkingBooking = () => {
                 {s.time} | ${s.price}
               </p>
               <p className="mt-2 text-sm text-gray-500">{s.about}</p>
+              <button
+                onClick={() =>
+                  router.push(
+                    `/salon/booking?token=${qrToken}&serviceId=${s._id}`,
+                  )
+                }
+                className="
+    w-full mt-6 cursor-pointer
+    bg-[#4625A0]
+    text-white font-medium text-base
+    py-2 px-6
+    rounded
+    hover:shadow-lg
+    hover:scale-[1.02]
+    active:scale-95
+    transition-all duration-200
+    focus:outline-none
+  "
+              >
+                Book Now
+              </button>
             </div>
           ))}
         </div>
@@ -144,4 +164,4 @@ const WalkingBooking = () => {
   );
 };
 
-export default WalkingBooking;
+export default SalonDetails;
