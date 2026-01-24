@@ -1,6 +1,7 @@
 'use client';
 
 import Spinner from '@/src/components/Spinner';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StarRatings from 'react-star-ratings';
@@ -16,7 +17,7 @@ const SalonDetails = () => {
   useEffect(() => {
     if (!qrToken) return;
 
-    fetch(`http://10.10.10.73:5001/api/v1/qr-code/salon/${qrToken}`)
+    fetch(`${process.env.NEXT_PUBLIC_BASE_API_URL}/qr-code/salon/${qrToken}`)
       .then((res) => res.json())
       .then((res) => {
         setData(res.data);
@@ -24,6 +25,10 @@ const SalonDetails = () => {
       })
       .catch(() => setLoading(false));
   }, [qrToken]);
+
+  const handelBooking = (data: string) => {
+    console.log(data);
+  };
 
   if (loading) {
     return <Spinner />;
@@ -38,10 +43,12 @@ const SalonDetails = () => {
       {/* Salon Header */}
       <div className="flex flex-col md:flex-row gap-2 items-center">
         <div className="flex-1">
-          <img
+          <Image
             src={data.salonPhoto || data.salonFrontPhoto}
             alt={data.salonName}
             className="w-full md:w-80 h-48 object-cover rounded-lg"
+            width={300}
+            height={200}
           />
         </div>
         <div className=" flex-1">
@@ -105,10 +112,12 @@ const SalonDetails = () => {
             >
               <div className="flex items-center gap-3 mb-2">
                 {s.images?.[0]?.url && (
-                  <img
+                  <Image
                     src={s.images[0].url}
                     alt={s.name}
                     className="w-16 h-16 object-cover rounded-md"
+                    width={100}
+                    height={100}
                   />
                 )}
                 <h3 className="text-lg font-semibold text-gray-700">
