@@ -22,14 +22,14 @@ import z from 'zod';
 type BookingFormValues = {
   customerName: string;
   phone: string;
+  email: string;
   date: string;
 };
 
 const bookingSchema = z.object({
   customerName: z.string().min(2, 'Your name is required'),
-
   phone: z.string().min(1, 'Phone number is required'),
-
+  email: z.string().min(1, 'Email is required').email('Invalid email address'),
   date: z.string().min(1, 'Booking date is required'),
 });
 
@@ -46,6 +46,7 @@ const Booking = () => {
     defaultValues: {
       customerName: '',
       phone: '',
+      email: '',
       date: '',
     },
   });
@@ -151,18 +152,17 @@ const Booking = () => {
             )}
           />
 
-          {/* Phone */}
+          {/* Email */}
           <FormField
             control={form.control}
-            name="phone"
-            rules={{ required: 'Phone number is required' }}
+            name="email"
+            rules={{ required: 'Email is required' }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number</FormLabel>
+                <FormLabel className="text-gray-700">Email</FormLabel>
                 <FormControl>
                   <Input
-                    type="tel"
-                    placeholder="Enter your phone number"
+                    placeholder="Enter your email"
                     {...field}
                     className="rounded py-5"
                   />
