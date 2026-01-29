@@ -1,9 +1,9 @@
-import WalkingBooking from './_components';
+import SalonDetails from "./_components";
 
 const SalonDetailsPage = () => {
   return (
     <div>
-      <WalkingBooking />
+      <SalonDetails />
     </div>
   );
 };
