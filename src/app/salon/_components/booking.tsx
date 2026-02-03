@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import z from 'zod';
 
 import {
   Form,
@@ -16,30 +18,32 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { zodResolver } from '@hookform/resolvers/zod';
-import z from 'zod';
 
 type BookingFormValues = {
   customerName: string;
   phone: string;
   email: string;
   date: string;
+  specialist: string;
 };
 
 const bookingSchema = z.object({
   customerName: z.string().min(2, 'Your name is required'),
   phone: z.string().min(1, 'Phone number is required'),
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
+  email: z.string().email('Invalid email address'),
   date: z.string().min(1, 'Booking date is required'),
+  specialist: z.string().min(1, 'Please select a specialist'),
 });
 
 const Booking = () => {
   const params = useSearchParams();
   const token = params.get('token');
   const serviceId = params.get('serviceId');
+  const router = useRouter();
 
   const [service, setService] = useState<any>(null);
-  const router = useRouter();
+  const [specialists, setSpecialists] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -48,6 +52,7 @@ const Booking = () => {
       phone: '',
       email: '',
       date: '',
+      specialist: '',
     },
   });
 
@@ -61,8 +66,21 @@ const Booking = () => {
           (s: any) => s._id === serviceId,
         );
         setService(selectedService);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [token, serviceId]);
+
+  useEffect(() => {
+    if (!service?.owner) return;
+
+    fetch(
+      `${process.env.NEXT_PUBLIC_BASE_API_URL}/specialists?owner=${service.owner}`,
+    )
+      .then((res) => res.json())
+      .then((res) => {
+        setSpecialists(res.data || []);
+      });
+  }, [service]);
 
   const onSubmit = async (values: BookingFormValues) => {
     const payload = {
@@ -73,13 +91,16 @@ const Booking = () => {
 
     console.log('Booking Payload:', payload);
 
-    // 👉 এখানে booking API call করবে
-    // await fetch('/api/booking', { method: 'POST', body: JSON.stringify(payload) })
+    // await fetch('/api/booking', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(payload),
+    // });
 
     // router.push('/booking/success');
   };
 
-  if (!service) return <Spinner />;
+  if (loading || !service) return <Spinner />;
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-2xl shadow-lg my-10">
@@ -94,7 +115,7 @@ const Booking = () => {
       {/* Service Info */}
       <div className="mb-6 p-4 rounded-lg bg-gray-50 border flex items-center gap-4">
         <Image
-          src={service.images?.[0]?.url}
+          src={service.images?.[0]?.url || '/placeholder.png'}
           alt={service.name}
           width={100}
           height={100}
@@ -110,15 +131,60 @@ const Booking = () => {
 
       {/* Form */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          {/* Specialist Selection */}
+          {specialists.length > 0 && (
+            <FormField
+              control={form.control}
+              name="specialist"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Specialist</FormLabel>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {specialists.map((specialist: any) => {
+                      const selected = field.value === specialist._id;
+
+                      return (
+                        <div
+                          key={specialist._id}
+                          onClick={() => field.onChange(specialist._id)}
+                          className={`cursor-pointer border rounded p-3 flex items-center gap-3
+                            ${
+                              selected
+                                ? 'border-[#4625A0] bg-purple-50'
+                                : 'border-gray-200'
+                            }
+                          `}
+                        >
+                          <Image
+                            src={specialist.image || '/default-specialist.png'}
+                            alt={specialist.name}
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <p className="font-medium text-gray-800">
+                            {specialist.name}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           {/* Name */}
           <FormField
             control={form.control}
             name="customerName"
-            rules={{ required: 'Name is required' }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-700">Your Name</FormLabel>
+                <FormLabel>Your Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your full name"
@@ -135,7 +201,6 @@ const Booking = () => {
           <FormField
             control={form.control}
             name="phone"
-            rules={{ required: 'Phone number is required' }}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
@@ -156,10 +221,9 @@ const Booking = () => {
           <FormField
             control={form.control}
             name="email"
-            rules={{ required: 'Email is required' }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-700">Email</FormLabel>
+                <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your email"
@@ -172,26 +236,10 @@ const Booking = () => {
             )}
           />
 
-          {/* Date */}
-          <FormField
-            control={form.control}
-            name="date"
-            rules={{ required: 'Booking date is required' }}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Book Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} className="rounded py-5" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           {/* Submit */}
           <Button
             type="submit"
-            className="w-full bg-[#4625A0] hover:bg-[#3a1f85] rounded py-5 cursor-pointer"
+            className="w-full bg-[#4625A0] hover:bg-[#3a1f85] rounded py-5"
           >
             Confirm Booking
           </Button>

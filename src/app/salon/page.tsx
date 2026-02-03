@@ -1,4 +1,4 @@
-import SalonDetails from "./_components";
+import SalonDetails from './_components';
 
 const SalonDetailsPage = () => {
   return (

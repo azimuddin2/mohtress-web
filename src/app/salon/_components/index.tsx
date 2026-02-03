@@ -13,6 +13,9 @@ const SalonDetails = () => {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [specialists, setSpecialists] = useState<any[]>([]);
+
+  console.log('Specialists:', specialists);
 
   useEffect(() => {
     if (!qrToken) return;
@@ -26,9 +29,18 @@ const SalonDetails = () => {
       .catch(() => setLoading(false));
   }, [qrToken]);
 
-  const handelBooking = (data: string) => {
-    console.log(data);
-  };
+  useEffect(() => {
+    if (!data || !data.user) return;
+
+    fetch(
+      `${process.env.NEXT_PUBLIC_BASE_API_URL}/specialists?owner=${data.user}`,
+    )
+      .then((res) => res.json())
+      .then((res) => {
+        setSpecialists(res.data);
+      })
+      .catch(() => {});
+  }, [data]);
 
   if (loading) {
     return <Spinner />;
@@ -57,7 +69,7 @@ const SalonDetails = () => {
           </h1>
           <p className="mt-2 text-sm text-gray-500">{data.about}</p>
           <p className="text-sm text-gray-500 capitalize mt-3">
-            Status: {data.approvalStatus}
+            Verify Status: {data.approvalStatus}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <StarRatings
@@ -152,6 +164,34 @@ const SalonDetails = () => {
               >
                 Book Now
               </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Our Specialists */}
+      <div>
+        <h2 className="text-xl font-medium text-gray-800 mb-4 mt-5">
+          Our Specialists
+        </h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {specialists.map((specialist: any) => (
+            <div
+              key={specialist._id}
+              className="flex items-center gap-3 p-4 border rounded-lg"
+            >
+              <Image
+                src={specialist.image || '/default-specialist.png'}
+                alt={specialist.name}
+                width={80}
+                height={80}
+                className="w-16 h-16 object-cover rounded-full"
+              />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700">
+                  {specialist.name}
+                </h3>
+              </div>
             </div>
           ))}
         </div>
