@@ -4,7 +4,7 @@ import Spinner from '@/src/components/Spinner';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
 
@@ -18,12 +18,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { addBooking, createPayment } from '@/src/services';
+import { toast } from 'sonner';
 
 type BookingFormValues = {
   customerName: string;
   phone: string;
   email: string;
-  date: string;
   specialist: string;
 };
 
@@ -31,7 +32,6 @@ const bookingSchema = z.object({
   customerName: z.string().min(2, 'Your name is required'),
   phone: z.string().min(1, 'Phone number is required'),
   email: z.string().email('Invalid email address'),
-  date: z.string().min(1, 'Booking date is required'),
   specialist: z.string().min(1, 'Please select a specialist'),
 });
 
@@ -51,11 +51,11 @@ const Booking = () => {
       customerName: '',
       phone: '',
       email: '',
-      date: '',
       specialist: '',
     },
   });
 
+  // Fetch service details using token and serviceId
   useEffect(() => {
     if (!token || !serviceId) return;
 
@@ -70,6 +70,7 @@ const Booking = () => {
       .finally(() => setLoading(false));
   }, [token, serviceId]);
 
+  // Fetch specialists for the salon
   useEffect(() => {
     if (!service?.owner) return;
 
@@ -82,22 +83,52 @@ const Booking = () => {
       });
   }, [service]);
 
-  const onSubmit = async (values: BookingFormValues) => {
-    const payload = {
-      ...values,
-      token,
-      serviceId,
-    };
+  // Handle form submission
+  const onSubmit: SubmitHandler<BookingFormValues> = async (data) => {
+    try {
+      const payload = {
+        ...data,
+        qrToken: token,
+        service: serviceId,
+      };
 
-    console.log('Booking Payload:', payload);
+      // 1️⃣ Create booking
+      const bookingRes = await addBooking(payload);
 
-    // await fetch('/api/booking', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(payload),
-    // });
+      if (!bookingRes?.success) {
+        toast.error(bookingRes?.message || 'Booking failed');
+        return;
+      }
 
-    // router.push('/booking/success');
+      toast.success(bookingRes.message);
+      form.reset();
+
+      const bookingId = bookingRes.data?._id;
+      if (!bookingId) {
+        toast.error('Booking ID not found');
+        return;
+      }
+
+      // 2️⃣ Create payment
+      const paymentRes = await createPayment({ booking: bookingId });
+
+      if (!paymentRes?.success) {
+        toast.error(paymentRes?.message || 'Payment failed');
+        return;
+      }
+
+      const checkoutUrl = paymentRes.data?.checkoutUrl;
+      if (!checkoutUrl) {
+        toast.error('Checkout URL not found');
+        return;
+      }
+
+      // 3️⃣ Redirect to Stripe Checkout ✅
+      window.location.href = checkoutUrl;
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Something went wrong');
+    }
   };
 
   if (loading || !service) return <Spinner />;
@@ -129,9 +160,8 @@ const Booking = () => {
         </div>
       </div>
 
-      {/* Form */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Specialist Selection */}
           {specialists.length > 0 && (
             <FormField
@@ -139,7 +169,9 @@ const Booking = () => {
               name="specialist"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Select Specialist</FormLabel>
+                  <FormLabel className="text-gray-600!">
+                    Select Specialist
+                  </FormLabel>
 
                   <div className="grid grid-cols-2 gap-2">
                     {specialists.map((specialist: any) => {
@@ -184,7 +216,7 @@ const Booking = () => {
             name="customerName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Your Name</FormLabel>
+                <FormLabel className="text-gray-600!">Your Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your full name"
@@ -203,7 +235,7 @@ const Booking = () => {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number</FormLabel>
+                <FormLabel className="text-gray-600!">Phone Number</FormLabel>
                 <FormControl>
                   <Input
                     type="tel"
@@ -223,7 +255,7 @@ const Booking = () => {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-gray-600!">Email</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your email"
@@ -239,7 +271,7 @@ const Booking = () => {
           {/* Submit */}
           <Button
             type="submit"
-            className="w-full bg-[#4625A0] hover:bg-[#3a1f85] rounded py-5"
+            className="w-full bg-[#4625A0] hover:bg-[#3a1f85] rounded py-5 cursor-pointer"
           >
             Confirm Booking
           </Button>
