@@ -15,8 +15,6 @@ const SalonDetails = () => {
   const [loading, setLoading] = useState(true);
   const [specialists, setSpecialists] = useState<any[]>([]);
 
-  console.log('Specialists:', specialists);
-
   useEffect(() => {
     if (!qrToken) return;
 
