@@ -2,7 +2,7 @@
 
 import Spinner from '@/src/components/Spinner';
 import Image from 'next/image';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { addBooking, createPayment } from '@/src/services';
 import { toast } from 'sonner';
+import { PhoneInput } from './phone-input';
 
 type BookingFormValues = {
   customerName: string;
@@ -39,7 +40,6 @@ const Booking = () => {
   const params = useSearchParams();
   const token = params.get('token');
   const serviceId = params.get('serviceId');
-  const router = useRouter();
 
   const [service, setService] = useState<any>(null);
   const [specialists, setSpecialists] = useState<any[]>([]);
@@ -229,7 +229,7 @@ const Booking = () => {
             )}
           />
 
-          {/* Phone */}
+          {/* Phone Number */}
           <FormField
             control={form.control}
             name="phone"
@@ -237,11 +237,12 @@ const Booking = () => {
               <FormItem>
                 <FormLabel className="text-gray-600!">Phone Number</FormLabel>
                 <FormControl>
-                  <Input
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    {...field}
-                    className="rounded py-5"
+                  <PhoneInput
+                    // @ts-ignore
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    international
+                    defaultCountry="US"
                   />
                 </FormControl>
                 <FormMessage />
